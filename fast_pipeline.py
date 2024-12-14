@@ -1,22 +1,16 @@
 import os
 import numpy as np
 
-import yolov11
 import yolov5
 from ensemble_boxes import *
 import copy
 from PIL import Image, ImageDraw, ImageFont
 
-import paddleocr
-from paddleocr import PaddleOCR,draw_ocr
 import easyocr
 
 from ultralytics import YOLO
 yolo_seg = YOLO("/content/yolov11m-seg-best.pt")
 yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
-paddle_fast = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', structure_version = 'PP-Structure',
-                rec_algorithm = 'CRNN', max_text_length = 200, use_space_char = False, lan = 'en', det = False,
-                cpu_threads = 12, cls = False,use_gpu=False )
 reader = easyocr.Reader(['en'])
 
 def detect_screen(image_path):
