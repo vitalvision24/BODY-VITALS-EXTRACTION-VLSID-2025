@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-
+import os
 import numpy as np
 
 import yolov5
@@ -9,6 +9,9 @@ import copy
 from PIL import Image, ImageDraw, ImageFont
 
 yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
+paddle_fast = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', structure_version = 'PP-Structure',
+                rec_algorithm = 'CRNN', max_text_length = 200, use_space_char = False, lan = 'en', det = False,
+                cpu_threads = 12, cls = False,use_gpu=False )
 
 def return_fast_output(yolo_model, img):
 
@@ -37,6 +40,24 @@ def return_fast_output(yolo_model, img):
 
     # print(dic)
     return dic
+
+def recognize_fast(image,dic,rec):
+
+    vitals = {}
+    labels = {0.0: 'DBP' , 1.0:'HR' , 2.0:'MAP', 3.0:'RR' ,4.0:'SBP' ,5.0:'SPO2' }
+    for each in dic.keys():
+        score, box = dic[each]
+        xmin = int(box[0])
+        xmax = int(box[2])
+        ymin = int(box[1])
+        ymax = int(box[3])
+        img = image[ymin:ymax,xmin:xmax]
+        text = rec.ocr(img,cls = False,det = False)[0][0][0]
+        text = text.replace('(','').replace(')','').replace('/','').replace('-','').replace('*','')
+        if text.isdigit():
+            vitals[labels[each]] = text
+
+    return vitals
 
 def draw_bounding_boxes_pillow(image, dic):
     # Convert image to a PIL Image (if it's not already)
@@ -71,14 +92,72 @@ def draw_bounding_boxes_pillow(image, dic):
 
     return image
 
+def draw_bounding_boxes_with_labels(image, dic, number_dict):
+    """
+    Draw bounding boxes on the image with labels and values from number_dict.
+    Save the modified image with annotations.
+    """
+    # Convert image to a PIL Image (if it's not already)
+    if not isinstance(image, Image.Image):
+        image = Image.fromarray(image)
+
+    # Create a Draw object
+    draw = ImageDraw.Draw(image)
+
+    # Try to load a custom font or fall back to the default font
+    try:
+        font = ImageFont.truetype("arial.ttf", 16)  # Load TTF font
+    except IOError:
+        font = ImageFont.load_default()
+
+    # Labels dictionary (to map numerical labels to categories)
+    labels = {0.0: 'DBP', 1.0: 'HR', 2.0: 'MAP', 3.0: 'RR', 4.0: 'SBP', 5.0: 'SPO2'}
+
+    # Iterate through bounding boxes and draw them
+    for label, (score, box) in dic.items():
+        x_min, y_min, x_max, y_max = [int(coord) for coord in box]
+
+        # Draw the bounding box
+        draw.rectangle([x_min, y_min, x_max, y_max], outline="red", width=3)
+
+        # Add the label and corresponding value from number_dict
+        category = labels.get(label, "Unknown")
+        value = number_dict.get(category, "N/A")  # Fetch value for the label
+        text = f"{category}: {value}"
+
+        # Calculate text background size
+        text_width, text_height = draw.textsize(text, font=font)
+        text_background = [x_min, y_min - text_height - 5, x_min + text_width, y_min]
+
+        # Draw text background and text
+        draw.rectangle(text_background, fill="red")  # Background for better visibility
+        draw.text((x_min, y_min - text_height - 5), text, fill="white", font=font)
+
+    return image
+
+
+def final_detection(transformed_image_path):
+    results = {}
+    img_name = os.path.basename(transformed_image_path)
+    
+    # Load the transformed image
+    transformed_image = Image.open(transformed_image_path)
+    transformed_img=np.array(transformed_image)
+    
+    temp = return_fast_output(yolo_fast, transformed_img)
+    box_img = draw_bounding_boxes_pillow(transformed_image, temp)
+    box_img.save("output_image.jpg", format="JPEG")
+    print("Image saved as 'output_image.jpg' in the current directory.")
+    
+    number_dict = recognize_fast(transformed_img, temp, paddle_fast)
+    result_image = draw_bounding_boxes_with_labels(transformed_img, temp, number_dict)
+    result_image.save("annotated_image.jpg")
+
+    results[img_name] = number_dict
+    
+    return results
+
+
 transformed_image_path = './1.jpg'
-# Load the transformed image
-transformed_image = Image.open(transformed_image_path)
-# Perform detection and inference
-transformed_img=np.array(transformed_image)
-# detection_dict = number_detection(transformed_img, mode)
-temp = return_fast_output(yolo_fast, transformed_img)
-box_img = draw_bounding_boxes_pillow(transformed_image, temp)
-# Save the image in JPG format
-box_img.save("output_image.jpg", format="JPEG")
-print("Image saved as 'output_image.jpg' in the current directory.")
+results_dict = final_detection(transformed_image_path)
+
