@@ -67,7 +67,7 @@ def draw_bounding_boxes_pillow(image, dic):
 
     return image
 
-
+transformed_image_path = './1.jpg'
 # Load the transformed image
 transformed_image = Image.open(transformed_image_path)
 # Perform detection and inference
