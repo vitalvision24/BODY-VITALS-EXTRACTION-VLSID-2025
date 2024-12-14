@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 import easyocr
 
 from ultralytics import YOLO
-yolo_seg = YOLO("/content/yolov11m-seg-best.pt")
+yolo_seg = YOLO("./yolov11m-seg-best.pt")
 yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
 reader = easyocr.Reader(['en'])
 
