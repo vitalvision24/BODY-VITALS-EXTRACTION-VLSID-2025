@@ -1,5 +1,3 @@
-import matplotlib.pyplot as plt
-
 import os
 import numpy as np
 
@@ -7,6 +5,10 @@ import yolov5
 from ensemble_boxes import *
 import copy
 from PIL import Image, ImageDraw, ImageFont
+
+import paddleocr
+from paddleocr import PaddleOCR,draw_ocr
+
 
 yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
 paddle_fast = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', structure_version = 'PP-Structure',
@@ -125,16 +127,17 @@ def draw_bounding_boxes_with_labels(image, dic, number_dict):
         value = number_dict.get(category, "N/A")  # Fetch value for the label
         text = f"{category}: {value}"
 
-        # Calculate text background size
-        text_width, text_height = draw.textsize(text, font=font)
-        text_background = [x_min, y_min - text_height - 5, x_min + text_width, y_min]
+        text_bbox = font.getbbox(text)  # Use getbbox to calculate text size
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+
+        text_background = [x_min, y_min - text_height -5, x_min + text_width, y_min]
 
         # Draw text background and text
         draw.rectangle(text_background, fill="red")  # Background for better visibility
         draw.text((x_min, y_min - text_height - 5), text, fill="white", font=font)
 
     return image
-
 
 def save_results_to_txt(results, output_file="results.txt"):
     """
