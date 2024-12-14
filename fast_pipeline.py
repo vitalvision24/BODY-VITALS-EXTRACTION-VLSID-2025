@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 import paddleocr
 from paddleocr import PaddleOCR,draw_ocr
+import easyocr
 
 from ultralytics import YOLO
 yolo_seg = YOLO("/content/yolov11m-seg-best.pt")
@@ -16,6 +17,7 @@ yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
 paddle_fast = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', structure_version = 'PP-Structure',
                 rec_algorithm = 'CRNN', max_text_length = 200, use_space_char = False, lan = 'en', det = False,
                 cpu_threads = 12, cls = False,use_gpu=False )
+reader = easyocr.Reader(['en'])
 
 def detect_screen(image_path):
     # Load the transformed image
@@ -89,23 +91,36 @@ def return_fast_output(yolo_model, img):
     # print(dic)
     return dic
 
-def recognize_fast(image,dic,rec):
-
+def recognize_fast(image, dic, rec):
     vitals = {}
-    labels = {0.0: 'DBP' , 1.0:'HR' , 2.0:'HR_W' , 3.0:'MAP', 4.0:'RR' , 5.0:'SBP' , 6.0:'SPO2' }
+    labels = {0.0: 'DBP', 1.0: 'HR', 2.0: 'HR_W', 3.0: 'MAP', 4.0: 'RR', 5.0: 'SBP', 6.0: 'SPO2'}
+    
     for each in dic.keys():
         score, box = dic[each]
         xmin = int(box[0])
         xmax = int(box[2])
         ymin = int(box[1])
         ymax = int(box[3])
-        img = image[ymin:ymax,xmin:xmax]
-        text = rec.ocr(img,cls = False,det = False)[0][0][0]
-        text = text.replace('(','').replace(')','').replace('/','').replace('-','').replace('*','')
-        if text.isdigit():
-            vitals[labels[each]] = text
+        img = image[ymin:ymax, xmin:xmax]
+
+        # Use EasyOCR to read text from the image region
+        ocr_result = rec.readtext(img)
+        
+        # Loop through OCR results and process the first result with sufficient confidence
+        for detection in ocr_result:
+            text = detection[1]  # Extract the text from the OCR result (second element)
+            confidence = detection[2]  # Extract confidence score
+
+            # Clean the text (remove unwanted characters)
+            text = text.replace('(', '').replace(')', '').replace('/', '').replace('-', '').replace('*', '')
+
+            # Check if the text is numeric and assign to the correct label
+            if text.isdigit():
+                vitals[labels[each]] = text
+                break  # Stop once the first valid result is found
 
     return vitals
+
 
 
 def draw_screen_boxes_pillow(image, dic):
@@ -297,7 +312,7 @@ def final_detection(image_path):
     box_img.save("output_image.jpg", format="JPEG")
     print("Image saved as 'output_image.jpg' in the current directory.")
     
-    number_dict = recognize_fast(transformed_img, temp, paddle_fast)
+    number_dict = recognize_fast(transformed_img, temp, reader)
     result_image = draw_bounding_boxes_with_labels(transformed_img, temp, number_dict)
     result_image.save("annotated_image.jpg")
     print("Image saved as 'annotated_image.jpg' in the current directory.")
