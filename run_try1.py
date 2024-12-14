@@ -6,7 +6,7 @@ from ensemble_boxes import *
 import copy
 from PIL import Image, ImageDraw, ImageFont
 
-yolo_fast = yolov5.load('/content/drive/MyDrive/yolo_on_6_fast.pt')
+yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
 
 def return_fast_output(yolo_model, img):
 
