@@ -44,7 +44,7 @@ def return_fast_output(yolo_model, img):
 def recognize_fast(image,dic,rec):
 
     vitals = {}
-    labels = {0.0: 'DBP' , 1.0:'HR' , 2.0:'MAP', 3.0:'RR' ,4.0:'SBP' ,5.0:'SPO2' }
+    labels = {0.0: 'DBP' , 1.0:'HR' , 2.0:'HR_W' , 3.0:'MAP', 4.0:'RR' , 5.0:'SBP' , 6.0:'SPO2' }
     for each in dic.keys():
         score, box = dic[each]
         xmin = int(box[0])
@@ -111,7 +111,7 @@ def draw_bounding_boxes_with_labels(image, dic, number_dict):
         font = ImageFont.load_default()
 
     # Labels dictionary (to map numerical labels to categories)
-    labels = {0.0: 'DBP', 1.0: 'HR', 2.0: 'MAP', 3.0: 'RR', 4.0: 'SBP', 5.0: 'SPO2'}
+    labels = {0.0: 'DBP', 1.0: 'HR', 2.0:'HR_W', 3.0: 'MAP', 4.0: 'RR', 5.0: 'SBP', 6.0: 'SPO2'}
 
     # Iterate through bounding boxes and draw them
     for label, (score, box) in dic.items():
@@ -136,6 +136,23 @@ def draw_bounding_boxes_with_labels(image, dic, number_dict):
     return image
 
 
+def save_results_to_txt(results, output_file="results.txt"):
+    """
+    Save the results dictionary to a text file.
+
+    Parameters:
+        results (dict): Dictionary to be saved.
+        output_file (str): Name of the text file to save the results.
+    """
+    with open(output_file, "w") as file:
+        for img_name, values in results.items():
+            file.write(f"Image: {img_name}\n")
+            for label, value in values.items():
+                file.write(f"{label}: {value}\n")
+            file.write("\n")  # Add a blank line between entries
+    print(f"Results saved to '{output_file}'")
+
+
 def final_detection(transformed_image_path):
     results = {}
     img_name = os.path.basename(transformed_image_path)
@@ -152,7 +169,7 @@ def final_detection(transformed_image_path):
     number_dict = recognize_fast(transformed_img, temp, paddle_fast)
     result_image = draw_bounding_boxes_with_labels(transformed_img, temp, number_dict)
     result_image.save("annotated_image.jpg")
-
+    print("Image saved as 'annotated_image.jpg' in the current directory.")
     results[img_name] = number_dict
     
     return results
@@ -160,4 +177,5 @@ def final_detection(transformed_image_path):
 
 transformed_image_path = './1.jpg'
 results_dict = final_detection(transformed_image_path)
+save_results_to_txt(results_dict, output_file="detection_results.txt")
 
