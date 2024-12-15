@@ -28,7 +28,7 @@ from ultralytics import YOLO
 
 # loading the YOLOv_11 model
 yolo_seg = YOLO("./yolov11m-seg-best.pt")
-# loading YOLOv_11 model
+# loading YOLOv_5 model
 yolo_model_det = yolov5.load('./final_yolo_weights.pt')
 # loading OCR model
 model_ocr = torch.hub.load('baudm/parseq', 'parseq', pretrained=True).eval()
