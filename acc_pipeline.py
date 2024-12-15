@@ -385,6 +385,9 @@ class CRABBNET(nn.Module):
 model_crabb = CRABBNET()
 model_crabb = model_crabb.to(device)
 
+'''
+This is used for making custom dataset
+'''
 class InferDataset(Dataset):
     def __init__(self, img_dict):
         super().__init__()
