@@ -553,28 +553,36 @@ def save_results_to_txt(results, output_file="results.txt"):
             file.write("\n")  # Add a blank line between entries
     print(f"Results saved to '{output_file}'")
 
-
+'''
+This function takes the input as the input image path. It calls various functions to do processing
+of various types on the image and run models on it. It gives a dictionary as an output.
+'''
 def final_detection(image_path):
+    # intializing results as dictionary
     results = {}
     img_name = os.path.basename(image_path)
 
-    # Load the transformed image
+    # Load the input image
     image = Image.open(image_path)
     img=np.array(image)
-    # print(img)
-
+    
+    # calling detect_screen method to detect the screen
     screen_dic = detect_screen(image_path)
-    # print(screen_dic)
-    # Draw bounding boxes and save the result
+
+    
+    # Drawing bounding boxes and saving the result
     result_img = draw_screen_boxes_pillow(image, screen_dic)
+    # Saving the image in the current directory for reference
     result_img.save("boxed_screen.jpg", format="JPEG")
-    # Extract the bounding box
+    
+    # Extracting the bounding box
     for _, (score, box) in screen_dic.items():
-      if not box:  # If no box is detected, print a message and return
+      # If no box is detected, print a message and return  
+      if not box:  
         print("No bounding box detected.")
         return None
 
-    # Crop and save the bounding box part of the image
+    # Cropping and saving the bounding box part of the image
     transformed_image_path = crop_and_save_box(image, box)
     transformed_image = Image.open(transformed_image_path)
     transformed_img=np.array(transformed_image)
