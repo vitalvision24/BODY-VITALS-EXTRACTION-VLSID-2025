@@ -2,18 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import cv2
-
 import torch
 from torch import nn, optim
 import torchvision.transforms as T
 from torchvision.utils import make_grid
 from torch.utils.data import Dataset, DataLoader
-
 import timm
 import segmentation_models_pytorch as smp
 import imutils
 from skimage.transform import ProjectiveTransform
-
 import os
 from tqdm import tqdm
 from PIL import Image, ImageDraw, ImageFont
@@ -21,7 +18,6 @@ import albumentations as A
 from sklearn.model_selection import train_test_split
 import gc
 import glob
-
 import random
 import yolov5
 from ensemble_boxes import *
@@ -30,8 +26,11 @@ import torch.nn.functional as F
 import copy
 from ultralytics import YOLO
 
+# loading the YOLOv_11 model
 yolo_seg = YOLO("./yolov11m-seg-best.pt")
+# loading YOLOv_11 model
 yolo_model_det = yolov5.load('./final_yolo_weights.pt')
+# loading OCR model
 model_ocr = torch.hub.load('baudm/parseq', 'parseq', pretrained=True).eval()
 
 
