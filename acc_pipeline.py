@@ -30,8 +30,8 @@ import torch.nn.functional as F
 import copy
 from ultralytics import YOLO
 
-yolo_seg = YOLO("/content/drive/MyDrive/yolov11m-seg-best.pt")
-yolo_model_det = yolov5.load('/content/drive/MyDrive/final_yolo_weights.pt')
+yolo_seg = YOLO("./yolov11m-seg-best.pt")
+yolo_model_det = yolov5.load('./final_yolo_weights.pt')
 model_ocr = torch.hub.load('baudm/parseq', 'parseq', pretrained=True).eval()
 
 def detect_screen(image_path):
@@ -589,6 +589,6 @@ def final_detection(image_path):
 
     return results
 
-image_path = '/content/converted_images/content/unlabelled_images/images_unlabelled/converted_images/aastha_icu_mon--5_2023_1_2_18_0_0.png'
+image_path = './2.jpg'
 results_dict = final_detection(image_path)
 save_results_to_txt(results_dict, output_file="detection_results.txt")
