@@ -300,7 +300,7 @@ def save_results_to_txt(results, output_file="results.txt"):
 
 '''
 This function takes the input as the input image path. It calls various functions to do processing
-of various types on the image and run models on it. It dives a dictionary as an output.
+of various types on the image and run models on it. It gives a dictionary as an output.
 '''
 def final_detection(image_path):
     # intializing results as dictionary
