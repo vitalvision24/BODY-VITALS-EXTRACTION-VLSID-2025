@@ -11,7 +11,7 @@ from ultralytics import YOLO
 yolo_seg = YOLO("./yolov11m-seg-best.pt")
 # Loading YOLOv_5 model for data segmentation from the screen 
 yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
-# Loading easy OCR model to read data from the results of data segmentation
+# Loading EasyOCR model to read data from the results of data segmentation
 reader = easyocr.Reader(['en'])
 
 '''
