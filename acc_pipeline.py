@@ -34,27 +34,33 @@ yolo_seg = YOLO("./yolov11m-seg-best.pt")
 yolo_model_det = yolov5.load('./final_yolo_weights.pt')
 model_ocr = torch.hub.load('baudm/parseq', 'parseq', pretrained=True).eval()
 
+'''
+This function takes the input image path as input and uses YOLOv_11 to segment the screen from the image. 
+It returns an output dictionary containing the co-ordinates of the bounding box bounding the screen, 
+the confidence score and the label.
+'''
 def detect_screen(image_path):
-    # Load the transformed image
-    image = Image.open(image_path)
-    img = np.array(image)
-    # print(img)
 
-    image1 = img.copy()
+    # sending image in the model for segmentation
+    # output of the model is a list containing all the detected screens
     results_seg = yolo_seg.predict(source=image_path)
 
-    # Check if there are any predictions in the results
+    # Checking if there are any predictions in the results
     if len(results_seg) == 0:
         print("No objects detected.")
         return {}
 
-    # Extract the first prediction result
-    result = results_seg[0]  # Assuming one result in the list
+    # Extracting the first prediction result
+    # Assuming one result in the list
+    result = results_seg[0]  
 
-    # Extract bounding boxes, scores, and labels
-    boxes = result.boxes.xyxy.tolist()  # List of box coordinates
-    scores = result.boxes.conf.tolist()  # List of confidence scores
-    labels = result.names  # Class names or IDs
+    # Extracting bounding boxes, scores, and labels
+    # List of box coordinates
+    boxes = result.boxes.xyxy.tolist() 
+    # List of confidence scores
+    scores = result.boxes.conf.tolist()
+    # Class names or IDs
+    labels = result.names  
 
     # If no boxes are detected
     if len(boxes) == 0:
@@ -67,7 +73,7 @@ def detect_screen(image_path):
         score = scores[0]
         label = labels[0]
 
-        # Store the detection in a dictionary
+        # Storing the detection in a dictionary
         dic = {label: (score, box)}
 
     except Exception as e:
@@ -158,57 +164,49 @@ def return_output(yolo_model, img):
   result_label = labels_yolo
   return result_box, result_conf, result_label, img
 
+
+"""
+This method is used to draw bounding boxes on the image and save it.
+"""
 def draw_bounding_boxes_pillow(image, boxes, scores, labels, save_path):
-    """
-    Draw bounding boxes on the image and save it.
 
-    Args:
-        image: The original image (in numpy array format).
-        boxes: List of bounding boxes in the format [xmin, ymin, xmax, ymax].
-        scores: List of confidence scores for each bounding box.
-        labels: List of labels corresponding to each bounding box.
-        save_path: The path where the image with bounding boxes should be saved.
-
-    Returns:
-        None
-    """
-    # Convert the image to a PIL Image
+    # Converting the image to a PIL Image
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
 
-    # Create a drawing context on the image
+    # Creating a drawing context on the image
     draw = ImageDraw.Draw(image)
 
-    # Try to load a custom font or fall back to the default font
+    # Trying to load a custom font or fall back to the default font
     try:
-        font = ImageFont.truetype("arial.ttf", 16)  # Load TTF font
+        font = ImageFont.truetype("arial.ttf", 16)  
     except IOError:
         font = ImageFont.load_default()
 
-    # Iterate through each bounding box and draw
+    # Iterating through each bounding box and draw
     for i in range(len(boxes)):
         box = boxes[i]
         score = scores[i]
         label = labels[i]
 
-        # Convert the coordinates from relative to absolute
+        # Converting the coordinates from relative to absolute
         xmin, ymin, xmax, ymax = [int(coord * 1280) if i % 2 == 0 else int(coord * 720) for i, coord in enumerate(box)]
 
-        # Draw the bounding box
+        # Drawing the bounding box
         draw.rectangle([xmin, ymin, xmax, ymax], outline="red", width=3)
 
-        # Draw the label and score above the box
+        # Drawing the label and score above the box
         text = f"{label}: {score:.2f}"
         text_bbox = font.getbbox(text)
         text_width = text_bbox[2] - text_bbox[0]
         text_height = text_bbox[3] - text_bbox[1]
 
-        # Draw the background rectangle for the text
+        # Drawing the background rectangle for the text
         text_background = [xmin, ymin - text_height, xmin + text_width, ymin]
         draw.rectangle(text_background, fill="red")
         draw.text((xmin, ymin - text_height), text, fill="white", font=font)
 
-    # Save the image with bounding boxes drawn
+    # Saving the image with bounding boxes drawn
     image.save(save_path)
     print(f"Image saved as {save_path}")
 
@@ -566,12 +564,13 @@ def final_detection(image_path):
     image = Image.open(image_path)
     img=np.array(image)
     
-    # calling detect_screen method to detect the screen
+    # Calling detect_screen method to detect the screen
     screen_dic = detect_screen(image_path)
 
     
     # Drawing bounding boxes and saving the result
     result_img = draw_screen_boxes_pillow(image, screen_dic)
+    
     # Saving the image in the current directory for reference
     result_img.save("boxed_screen.jpg", format="JPEG")
     
