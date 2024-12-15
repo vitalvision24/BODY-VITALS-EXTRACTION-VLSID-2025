@@ -77,3 +77,52 @@ After the fine-tuned model detects the various vital signs that we are focusing 
 
 
 •	The graph is inverted vertically to match the original orientation of the signal.
+
+## STEPS TO IMPLEMENT THE PIPELINE:
+
+1) Clone the repo.
+
+
+```
+git clone https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025.git
+```
+
+2) Change the directory to `BODY-VITALS-EXTRACTION-VLSID-2025`
+
+
+```
+cd BODY-VITALS-EXTRACTION-VLSID-2025
+```
+
+3) Install all the dependencies/requirements.
+
+
+```
+pip install -r requirements.txt
+```
+
+
+4) Run one of the following pipelines to get the result.
+
+   a. Fast pipeline:
+
+
+   ```
+   python fast_pipeline_PaddleOCR.py
+   ```
+
+
+   b. Accurate pipeline:
+
+
+   ```
+   python acc_pipeline.py
+   ```
+
+
+5) To get the digitized Heart Rate graph:
+
+
+   ```
+   python hr_graph_digitization.py
+   ``` 
