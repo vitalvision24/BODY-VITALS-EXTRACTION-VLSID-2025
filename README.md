@@ -78,6 +78,9 @@ After the fine-tuned model detects the various vital signs that we are focusing 
 
 •	The graph is inverted vertically to match the original orientation of the signal.
 
+![file_2024-12-15_19 39 14](https://github.com/user-attachments/assets/975a35ce-7592-4886-a0a9-6f601c136ada)
+
+
 ## STEPS TO IMPLEMENT THE PIPELINE:
 
 1) Clone the repo.
