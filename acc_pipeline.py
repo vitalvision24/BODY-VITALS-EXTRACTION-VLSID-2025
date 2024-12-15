@@ -431,6 +431,9 @@ class InferDataset(Dataset):
         return len(self.img_dict['boxes'])
 
 def pred_organizing(pred_mat, nums):
+'''
+This method is used for making the output dictionary after getting all the outputs
+'''
     num_boxes = nums.shape[0]
     box_store = set(range(num_boxes))
     mat_variance = torch.var(pred_mat, dim=0)
@@ -473,20 +476,20 @@ This method is used to classify the data received from the OCR
     # Get the batch of data
     imgs, nums, text_data, val_vec = next(iter(test_loader))
 
-    # Ensure all tensors are on the same device as the model
+    # Ensuring all tensors are on the same device as the model
     imgs = imgs.float().to(device)  # Move to GPU
     nums = nums.float().to(device)  # Move to GPU
     text_data = text_data.float().to(device)  # Move to GPU
     val_vec = val_vec.float().to(device)  # Move to GPU
 
     with torch.no_grad():
-        # Perform inference
+        # Performing inference
         label_preds = model_crabb(imgs, text_data, nums, val_vec)
 
-    # Move back to CPU if needed for further processing
+    # Moving back to CPU if needed for further processing
     nums = nums.cpu().numpy()
 
-    # Organize predictions
+    # Organizing predictions
     yerr_dict = pred_organizing(label_preds, nums)
     yerr_dict = {k: v for k, v in yerr_dict.items() if v is not None}
     return yerr_dict
@@ -495,14 +498,14 @@ def draw_bounding_boxes_with_values(image, detection_dict, output_dict):
     """
     Draw bounding boxes on the image with correct labels and detected values.
     """
-    # Convert image to a PIL Image (if it's not already)
+    # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
 
-    # Create a Draw object
+    # Creating a Draw object
     draw = ImageDraw.Draw(image)
 
-    # Try to load a custom font or fall back to the default font
+    # Trying to load a custom font or fall back to the default font
     try:
         font = ImageFont.truetype("arial.ttf", 16)  # Load TTF font
     except IOError:
@@ -512,13 +515,14 @@ def draw_bounding_boxes_with_values(image, detection_dict, output_dict):
     labels_dict = output_dict
     boxes = detection_dict['boxes']
 
-    # Prepare a list of bounding boxes and their respective text labels
+    # Preparing a list of bounding boxes and their respective text labels
     box_labels = []
 
-    # Map each label to its respective bounding box
+    # Mapping each label to its respective bounding box
     for label_name, value in labels_dict.items():
         for box in boxes:
-            if box['num'] == value:  # Match the num value to the detected label
+            # Match the num value to the detected label
+            if box['num'] == value:  
                 xmin, ymin, xmax, ymax = box['bbox']
 
                 # Convert normalized box coordinates to pixel values
@@ -529,25 +533,25 @@ def draw_bounding_boxes_with_values(image, detection_dict, output_dict):
 
                 box_labels.append((xmin, ymin, xmax, ymax, label_name, value))
 
-    # Iterate through the box_labels to draw the boxes and labels
+    # Iterating through the box_labels to draw the boxes and labels
     for (xmin, ymin, xmax, ymax, label_name, value) in box_labels:
-        # Draw the bounding box
+        # Drawing the bounding box
         draw.rectangle([xmin, ymin, xmax, ymax], outline="red", width=3)
 
-        # Add the label and value above the bounding box
+        # Adding the label and value above the bounding box
         text = f"{label_name}: {value:.1f}"
 
-        # Get text size and adjust position
+        # Getting text size and adjust position
         text_bbox = font.getbbox(text)
         text_width = text_bbox[2] - text_bbox[0]
         text_height = text_bbox[3] - text_bbox[1]
 
-        # Draw background for text (to improve visibility)
+        # Drawing background for text (to improve visibility)
         text_background = [xmin, ymin - text_height - 5, xmin + text_width, ymin]
         draw.rectangle(text_background, fill="red")
         draw.text((xmin, ymin - text_height - 5), text, fill="white", font=font)
 
-    # Save the modified image with bounding boxes and text
+    # Saving the modified image with bounding boxes and text
     image.save('annotated_image.jpg')
     print("Image saved as annotated_image.jpg")
     return image
@@ -567,20 +571,19 @@ This method is used to detect the data in the screnn and then optically recogniz
     number_dict = image_dict(text , boxes , scores, img)
 
     return number_dict
+
+
 def save_results_to_txt(results, output_file="results.txt"):
     """
     Save the results dictionary to a text file.
-
-    Parameters:
-        results (dict): Dictionary to be saved.
-        output_file (str): Name of the text file to save the results.
     """
     with open(output_file, "w") as file:
         for img_name, values in results.items():
             file.write(f"Image: {img_name}\n")
             for label, value in values.items():
                 file.write(f"{label}: {value}\n")
-            file.write("\n")  # Add a blank line between entries
+            # Adding a blank line between entries
+            file.write("\n")  
     print(f"Results saved to '{output_file}'")
 
 
@@ -624,7 +627,7 @@ of various types on the image and run models on it. It gives a dictionary as an 
     output_dict = final_inference(detection_dict)
     print(output_dict)
     image_with_bboxes = draw_bounding_boxes_with_values(transformed_image, detection_dict, output_dict)
-    # Store the result for the current image
+    # Storing the result for the current image
     results[img_name] = output_dict
 
     return results
