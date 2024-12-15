@@ -1,11 +1,9 @@
 import os
 import numpy as np
-
 import yolov5
 from ensemble_boxes import *
 import copy
 from PIL import Image, ImageDraw, ImageFont
-
 import paddleocr
 from paddleocr import PaddleOCR,draw_ocr
 
@@ -155,12 +153,16 @@ def save_results_to_txt(results, output_file="results.txt"):
             file.write("\n")  # Add a blank line between entries
     print(f"Results saved to '{output_file}'")
 
-
+'''
+This function takes the input as the input image path. It calls various functions to do processing
+of various types on the image and run models on it. It gives a dictionary as an output.
+'''
 def final_detection(transformed_image_path):
+    # intializing results as dictionary  
     results = {}
     img_name = os.path.basename(transformed_image_path)
     
-    # Load the transformed image
+    # Loading the transformed image
     transformed_image = Image.open(transformed_image_path)
     transformed_img=np.array(transformed_image)
     
