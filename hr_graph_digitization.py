@@ -99,7 +99,7 @@ def digitize(img):
 
 if __name__=="__main__":
     # Loading the image using OpenCV
-    image_path = r"C:\Users\soham\Downloads\hgraph\image_40.jpg"
+    image_path = r"./test_hr_graph.jpg"
     img = cv.imread(image_path)
 
     # Checking if the image is loaded correctly
