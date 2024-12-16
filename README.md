@@ -119,7 +119,7 @@ pip install -r requirements.txt
 
 
    ```
-   python parseq_pipeline.py
+   python pipeline_parseq.py
    ```
 
 
