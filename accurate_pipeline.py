@@ -17,13 +17,12 @@ paddle_ocr = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', s
                 cpu_threads = 12, cls = False,use_gpu=False )
 
 
-def detect_screen(image_path):
-  
 '''
 This function takes the input image path as input and uses YOLOv_11 to segment the screen from the image. 
 It returns an output dictionary containing the co-ordinates of the bounding box bounding the screen, 
 the confidence score and the label.
 '''
+def detect_screen(image_path):
 
     # sending image in the model for segmentation
     # output of the model is a list containing all the detected screens
@@ -66,14 +65,12 @@ the confidence score and the label.
 
     return dic
 
-
-def return_output(yolo_model, img):
-  
 '''
 This function is used to segment various data from the screen. It takes yolo model and
 image as input.
 '''
-
+def return_output(yolo_model, img):
+  
     image = img.copy()
 
     # Get predictions from the YOLOv11 model
@@ -106,13 +103,11 @@ image as input.
     print("Dictionnary with Labels and Confidence Scores and Bounding Box Coordinates: ", dic)
     return dic
 
-
-def recognize(image, dic, rec):
-  
 '''
 This method is used for reading the data from the boxes made after detecting the data
 '''
-
+def recognize(image, dic, rec):
+  
     vitals = {}
     labels = {0.0:'DBP', 1.0:'HR', 2.0:'HR_W', 3.0:'MAP', 4.0:'RR' , 5.0:'SBP', 6.0:'SPO2'}
     for each in dic.keys():
@@ -133,12 +128,11 @@ This method is used for reading the data from the boxes made after detecting the
 
     return vitals
 
-
-def draw_screen_boxes_pillow(image, dic):
-  
 """
 Draws screen box, label, and score on the image using PIL.
 """
+def draw_screen_boxes_pillow(image, dic):
+  
 
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
@@ -175,15 +169,12 @@ Draws screen box, label, and score on the image using PIL.
         draw.rectangle(text_background, fill="red")
         draw.text((x_min, y_min - text_height), text, fill="white", font=font)
 
-        return image
-        
-
-def crop_and_save_box(image, box, save_path="transformed_image.jpg"):
+        return image     
   
 """
 Crops the part of the image inside the bounding box and saves it.
 """
-
+def crop_and_save_box(image, box, save_path="transformed_image.jpg"):
     # Converting image to a PIL Image if needed
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -200,13 +191,12 @@ Crops the part of the image inside the bounding box and saves it.
 
     return save_path
 
-
-def draw_bounding_boxes_pillow(image, dic):
-  
 '''
 This method draws bounding boxes for the screen detected by the model and returns the image
 with the bounding box drawn around it.
-'''    
+'''
+def draw_bounding_boxes_pillow(image, dic):
+      
 
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
@@ -244,13 +234,13 @@ with the bounding box drawn around it.
 
     return image
 
-
-def draw_bounding_boxes_with_labels(image, dic, number_dict):
-  
 """
 Draw bounding boxes on the image with labels and values from number_dict.
 Save the modified image with annotations.
 """
+def draw_bounding_boxes_with_labels(image, dic, number_dict):
+ 
+
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -291,12 +281,10 @@ Save the modified image with annotations.
 
     return image
     
-
-def save_results_to_txt(results, output_file="results.txt"):
-  
 """
 Save the results dictionary to a text file.
 """
+def save_results_to_txt(results, output_file="results.txt"):
 
     with open(output_file, "w") as file:
         for img_name, values in results.items():
@@ -306,13 +294,11 @@ Save the results dictionary to a text file.
             file.write("\n")  # Add a blank line between entries
     print(f"Results saved to '{output_file}'")
 
-
-def final_detection(image_path):
-  
 '''
 This function takes the input as the input image path. It calls various functions to do processing
 of various types on the image and run models on it. It gives a dictionary as an output.
 '''
+def final_detection(image_path):
 
     # intializing results as dictionary
     results = {}
