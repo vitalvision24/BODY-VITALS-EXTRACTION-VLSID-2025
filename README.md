@@ -131,12 +131,24 @@ pip install -r requirements.txt
    ``` 
 ## RESULTS
 
+
+* The results from the segmentation model can be found [here](https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/tree/main/Results/Screen_Segmentation).
+   * A result is also shown below:
+
+
+  <img src="https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/blob/main/Results/Screen_Segmentation/Screen2_out.jpg" width=400 height=400>
+
+
 * The results for data detection from the segmented image can be found [here](https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/tree/main/Results/Data_Detection).
- * A result is also shown below:
+   * A result is also shown below:
 
 
    <img src="https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/blob/main/Results/Data_Detection/result_4.jpg" width=400 height=400>
 
 
 
+* The results for OCR from the data detected can be found [here](https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/tree/main/Results/OCR).
+   * A result is also shown below:
 
+
+   <img src="https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/blob/main/Results/OCR/result_4.jpg" width=400 height=400>
