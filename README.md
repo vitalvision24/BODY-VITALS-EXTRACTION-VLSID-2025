@@ -129,3 +129,6 @@ pip install -r requirements.txt
    ```
    python hr_graph_digitization.py
    ``` 
+## RESULTS
+
+* The results for data detection from the segmented image can be found [here](https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/tree/main/Results/Data_Detection).
