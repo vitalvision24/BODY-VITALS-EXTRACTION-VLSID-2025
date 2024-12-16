@@ -648,6 +648,6 @@ def final_detection(image_path):
 
     return results
 
-image_path = './test.jpg'
+image_path = './test.jpeg'
 results_dict = final_detection(image_path)
 save_results_to_txt(results_dict, output_file="detection_results.txt")
