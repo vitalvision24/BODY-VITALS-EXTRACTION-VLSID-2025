@@ -154,7 +154,7 @@ pip install -r requirements.txt
    <img src="https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/blob/main/Results/OCR/result_4.jpg" width=400 height=400>
 
 
-* The results for OCR from the data detected can be found [here](https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/tree/main/Results/HR_GRAPH_DIGITIZATION).
+* The results for Heart Rate graph Digitization from the data detected can be found [here](https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/tree/main/Results/HR_GRAPH_DIGITIZATION).
    * A result is also shown below:
 
 
