@@ -107,19 +107,19 @@ pip install -r requirements.txt
 
 4) Run one of the following pipelines to get the result.
 
-   a. Fast pipeline:
+   a. Paddle OCR Pipeline:
 
 
    ```
-   python fast_pipeline_PaddleOCR.py
+   python paddle_pipeline.py
    ```
 
 
-   b. Accurate pipeline:
+   b. Parseq OCR Pipeline:
 
 
    ```
-   python acc_pipeline.py
+   python parseq_pipeline.py
    ```
 
 
