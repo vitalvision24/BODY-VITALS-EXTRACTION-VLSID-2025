@@ -19,7 +19,6 @@ from sklearn.model_selection import train_test_split
 import gc
 import glob
 import random
-import yolov5
 from ensemble_boxes import *
 import re
 import torch.nn.functional as F
@@ -27,19 +26,19 @@ import copy
 from ultralytics import YOLO
 
 # loading the YOLOv_11 model
-yolo_seg = YOLO("./yolov11m-seg-best.pt")
+yolo_seg = YOLO("./models/yolov11m-seg-best.pt")
 # loading YOLOv_5 model
-yolo_model_det = yolov5.load('./final_yolo_weights.pt')
+yolo_model_det = YOLO('./models/yolov11m-det-best.pt')
 # loading OCR model
 model_ocr = torch.hub.load('baudm/parseq', 'parseq', pretrained=True).eval()
 
-
-def detect_screen(image_path):
 '''
 This function takes the input image path as input and uses YOLOv_11 to segment the screen from the image. 
 It returns an output dictionary containing the co-ordinates of the bounding box bounding the screen, 
 the confidence score and the label.
 '''
+def detect_screen(image_path):
+
     # sending image in the model for segmentation
     # output of the model is a list containing all the detected screens
     results_seg = yolo_seg.predict(source=image_path)
@@ -51,15 +50,15 @@ the confidence score and the label.
 
     # Extracting the first prediction result
     # Assuming one result in the list
-    result = results_seg[0]  
+    result = results_seg[0]
 
     # Extracting bounding boxes, scores, and labels
     # List of box coordinates
-    boxes = result.boxes.xyxy.tolist() 
+    boxes = result.boxes.xyxy.tolist()
     # List of confidence scores
     scores = result.boxes.conf.tolist()
     # Class names or IDs
-    labels = result.names  
+    labels = result.names
 
     # If no boxes are detected
     if len(boxes) == 0:
@@ -81,11 +80,12 @@ the confidence score and the label.
 
     return dic
 
-def draw_screen_boxes_pillow(image, dic):
 '''
 This method draws bounding boxes for the screen detected by the model and returns the image
 with the bounding box drawn around it.
 '''
+def draw_screen_boxes_pillow(image, dic):
+
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -113,7 +113,7 @@ with the bounding box drawn around it.
 
         # Adding the label and score above the bounding box
         text = f"{label}: {score:.2f}"
-        text_bbox = font.getbbox(text)  
+        text_bbox = font.getbbox(text)
         text_width = text_bbox[2] - text_bbox[0]
         text_height = text_bbox[3] - text_bbox[1]
 
@@ -123,11 +123,11 @@ with the bounding box drawn around it.
         draw.text((x_min, y_min - text_height), text, fill="white", font=font)
 
         return image
-
+"""
+Crops the part of the image inside the bounding box and saves it.
+"""
 def crop_and_save_box(image, box, save_path="transformed_image.jpg"):
-    """
-    Crops the part of the image inside the bounding box and saves it.
-    """
+
     # Converting image to a PIL Image if needed
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -144,36 +144,44 @@ def crop_and_save_box(image, box, save_path="transformed_image.jpg"):
 
     return save_path
 
+
+
 def return_output(yolo_model, img):
-'''
-This function is used to segment various data from the screen. It takes yolo model and
-image as input.
-'''
+
   image = img.copy()
-  # passing the image in the model
+
+  # Get predictions from the YOLOv11 model
+  result = yolo_model(img)
+
+  image = img.copy()
+# passing the image in the model
   results_yolo = yolo_model(img)
 
   try:
-    boxes = results_yolo.pred[0][:, :4].tolist()
-    scores_yolo = results_yolo.pred[0][:, 4].tolist()
-    labels_yolo = results_yolo.pred[0][:, 5].tolist()
+   for r in result:
+        boxes = r.boxes.xyxy.tolist()  # List of bounding boxes
+        scores = r.boxes.conf.tolist()  # List of confidence scores
+        labels = r.boxes.cls.tolist()
+        print("\n#############",boxes, scores, labels,"\n")
+
   except:
     boxes = []
-    scores_yolo = []
-    labels_yolo = []
-  boxes_yolo = []
+    scores = []
+    labels = []
+
+  boxes_yolo=[]
   for box in boxes:
     boxes_yolo.append([box[0]/1280, box[1]/720, box[2]/1280, box[3]/720])
   result_box = boxes_yolo
-  result_conf = scores_yolo
-  result_label = labels_yolo
+  result_conf = scores
+  result_label = labels
+  print("\n TYPE:",type(result_box),"\n")
+  print(result_box,result_conf,result_label)
   return result_box, result_conf, result_label, img
 
 
 def draw_bounding_boxes_pillow(image, boxes, scores, labels, save_path):
-"""
-This method is used to draw bounding boxes on the image and save it.
-"""
+
     # Converting the image to a PIL Image
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -183,7 +191,7 @@ This method is used to draw bounding boxes on the image and save it.
 
     # Trying to load a custom font or fall back to the default font
     try:
-        font = ImageFont.truetype("arial.ttf", 16)  
+        font = ImageFont.truetype("arial.ttf", 16)
     except IOError:
         font = ImageFont.load_default()
 
@@ -214,11 +222,11 @@ This method is used to draw bounding boxes on the image and save it.
     image.save(save_path)
     print(f"Image saved as {save_path}")
 
-
-def recognize(image, boxes, scores):
 '''
 This method is used for running optical character recognization
 '''
+def recognize(image, boxes, scores):
+
     imgs = []
     for box in boxes:
         xmin = int(box[0] * 1280)
@@ -230,22 +238,24 @@ This method is used for running optical character recognization
 
     # Preprocessing images and collect them into a list
     # procs is a list now
-    procs = [preproc_image(img) for img in imgs]  
+    procs = [preproc_image(img) for img in imgs]
 
     # Concatenate only once after ensuring procs is a list of tensors
     procs = torch.cat(procs, dim=0)
     print(procs)
     # Feed the concatenated tensor to the OCR model
     preds = model_ocr(procs)
-    
+
     labels = inference_pred(preds)
 
     return labels, image, boxes, scores
 
-def preproc_image(img):
+
 '''
 This method preprocesses the image according to the input format of the OCR model
 '''
+def preproc_image(img):
+
     img = Image.fromarray(img).convert('RGB')
     transform = T.Compose([
             T.Resize((32, 128)),
@@ -255,10 +265,11 @@ This method preprocesses the image according to the input format of the OCR mode
     img = transform(img)
     return img.unsqueeze(0)
 
-def inference_pred(pred):
 '''
 This method is used to normalize the predicted results
 '''
+def inference_pred(pred):
+
     pred = pred.softmax(-1)
     label, _ = model_ocr.tokenizer.decode(pred)
     return label
@@ -272,12 +283,11 @@ def wbf_ensemble(boxes_list, scores_list, labels_list, image):
   boxes, scores, labels = weighted_boxes_fusion(boxes_list, scores_list, labels_list, weights=weights, iou_thr=iou_thr, skip_box_thr=skip_box_thr)
   return boxes, scores
 
-
+"""
+This method draws bounding boxes on the image with labels and detected numbers.
+Display the detected data above the boxes.
+"""
 def draw_bounding_boxes_with_labels(image, boxes, scores, text_labels):
-    """
-    This method draws bounding boxes on the image with labels and detected numbers.
-    Display the detected data above the boxes.
-    """
 
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
@@ -326,10 +336,11 @@ def check_string(string):
   pattern = r'^[\d]+$'
   return re.match(pattern, string) != None
 
-def image_dict(text , boxes , scores, image):
 '''
 This method is used for making custom dictionary for the outputs that we received
 '''
+def image_dict(text , boxes , scores, image):
+
   c = 0
   text_l = []
   boxes_l = []
@@ -380,7 +391,7 @@ class CRABBNET(nn.Module):
 #         x = F.softmax(x, dim = 1)
 
         return x
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model_crabb = CRABBNET()
 model_crabb = model_crabb.to(device)
 
@@ -429,10 +440,12 @@ class InferDataset(Dataset):
     def __len__(self):
         return len(self.img_dict['boxes'])
 
-def pred_organizing(pred_mat, nums):
+
 '''
 This method is used for making the output dictionary after getting all the outputs
 '''
+def pred_organizing(pred_mat, nums):
+
     num_boxes = nums.shape[0]
     box_store = set(range(num_boxes))
     mat_variance = torch.var(pred_mat, dim=0)
@@ -460,10 +473,11 @@ This method is used for making the output dictionary after getting all the outpu
 
     return res_dict
 
-def final_inference(img_dict):
 '''
 This method is used to classify the data received from the OCR
 '''
+def final_inference(img_dict):
+
     test_img = InferDataset(img_dict)
 
     test_loader = DataLoader(
@@ -493,10 +507,11 @@ This method is used to classify the data received from the OCR
     yerr_dict = {k: v for k, v in yerr_dict.items() if v is not None}
     return yerr_dict
 
+"""
+Draw bounding boxes on the image with correct labels and detected values.
+"""
 def draw_bounding_boxes_with_values(image, detection_dict, output_dict):
-    """
-    Draw bounding boxes on the image with correct labels and detected values.
-    """
+
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -521,7 +536,7 @@ def draw_bounding_boxes_with_values(image, detection_dict, output_dict):
     for label_name, value in labels_dict.items():
         for box in boxes:
             # Match the num value to the detected label
-            if box['num'] == value:  
+            if box['num'] == value:
                 xmin, ymin, xmax, ymax = box['bbox']
 
                 # Convert normalized box coordinates to pixel values
@@ -555,10 +570,12 @@ def draw_bounding_boxes_with_values(image, detection_dict, output_dict):
     print("Image saved as annotated_image.jpg")
     return image
 
-def number_detection(img):
+
 '''
 This method is used to detect the data in the screnn and then optically recognizing them
 '''
+def number_detection(img):
+
     # sending the image to YOLO model for detecting various vital signs on the screen
     boxes, scores, result_label, img = return_output(yolo_model_det, img)
 
@@ -571,26 +588,26 @@ This method is used to detect the data in the screnn and then optically recogniz
 
     return number_dict
 
-
+"""
+Save the results dictionary to a text file.
+"""
 def save_results_to_txt(results, output_file="results.txt"):
-    """
-    Save the results dictionary to a text file.
-    """
+
     with open(output_file, "w") as file:
         for img_name, values in results.items():
             file.write(f"Image: {img_name}\n")
             for label, value in values.items():
                 file.write(f"{label}: {value}\n")
             # Adding a blank line between entries
-            file.write("\n")  
+            file.write("\n")
     print(f"Results saved to '{output_file}'")
 
-
-def final_detection(image_path):
 '''
 This function takes the input as the input image path. It calls various functions to do processing
 of various types on the image and run models on it. It gives a dictionary as an output.
 '''
+def final_detection(image_path):
+
     # intializing results as dictionary
     results = {}
     img_name = os.path.basename(image_path)
@@ -598,21 +615,21 @@ of various types on the image and run models on it. It gives a dictionary as an 
     # Load the input image
     image = Image.open(image_path)
     img=np.array(image)
-    
+
     # Calling detect_screen method to detect the screen
     screen_dic = detect_screen(image_path)
 
-    
+
     # Drawing bounding boxes and saving the result
     result_img = draw_screen_boxes_pillow(image, screen_dic)
-    
+
     # Saving the image in the current directory for reference
     result_img.save("boxed_screen.jpg", format="JPEG")
-    
+
     # Extracting the bounding box
     for _, (score, box) in screen_dic.items():
-      # If no box is detected, print a message and return  
-      if not box:  
+      # If no box is detected, print a message and return
+      if not box:
         print("No bounding box detected.")
         return None
 
