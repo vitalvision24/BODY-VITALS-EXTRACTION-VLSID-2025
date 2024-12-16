@@ -111,7 +111,7 @@ pip install -r requirements.txt
 
 
    ```
-   python paddle_pipeline.py
+   python pipeline_paddle.py
    ```
 
 
