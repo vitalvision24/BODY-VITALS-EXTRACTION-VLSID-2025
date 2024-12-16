@@ -8,9 +8,9 @@ from paddleocr import PaddleOCR, draw_ocr
 from ultralytics import YOLO
 
 # Loading YOLOv11 model for screen segmentation
-yolo_seg = YOLO("/content/BODY-VITALS-EXTRACTION-VLSID-2025/models/yolov11m-seg-best.pt")
+yolo_seg = YOLO("/models/yolov11m-seg-best.pt")
 # Loading YOLOv11 model for data segmentation from the screen 
-yolo_det = YOLO('/content/BODY-VITALS-EXTRACTION-VLSID-2025/models/yolov11m-det-best.pt')
+yolo_det = YOLO('/models/yolov11m-det-best.pt')
 # Loading PaddleOCR model to read data from the results of data segmentation
 paddle_ocr = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', structure_version = 'PP-Structure',
                 rec_algorithm = 'CRNN', max_text_length = 200, use_space_char = False, lan = 'en', det = False,
