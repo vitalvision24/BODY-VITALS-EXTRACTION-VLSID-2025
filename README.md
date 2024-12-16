@@ -132,3 +132,10 @@ pip install -r requirements.txt
 ## RESULTS
 
 * The results for data detection from the segmented image can be found [here](https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/tree/main/Results/Data_Detection).
+ * A result is also shown below:
+
+
+   ![WhatsApp Image 2024-12-16 at 10 19 07_e14a82d9](https://github.com/user-attachments/assets/ae28aa0d-4ee7-4f3b-a374-85f723855192)
+
+
+
