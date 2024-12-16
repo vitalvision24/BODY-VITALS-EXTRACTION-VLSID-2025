@@ -152,3 +152,5 @@ pip install -r requirements.txt
 
 
    <img src="https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/blob/main/Results/OCR/result_4.jpg" width=400 height=400>
+
+
