@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import yolov5
 from ensemble_boxes import *
 import copy
 from PIL import Image, ImageDraw, ImageFont
@@ -8,12 +7,12 @@ import paddleocr
 from paddleocr import PaddleOCR,draw_ocr
 from ultralytics import YOLO
 
-# Loading YOLOv_11 model for screen segmentation
+# Loading YOLOv11 model for screen segmentation
 yolo_seg = YOLO("./yolov11m-seg-best.pt")
-# Loading YOLOv_5 model for data segmentation from the screen 
-yolo_fast = yolov5.load('./yolo_on_6_fast.pt')
+# Loading YOLOv11 model for data segmentation from the screen 
+yolo_det = YOLO('./yolov11m-det-best.pt')
 # Loading PaddleOCR model to read data from the results of data segmentation
-paddle_fast = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', structure_version = 'PP-Structure',
+paddle_ocr = PaddleOCR(use_angle_cls=False, lang='en', ocr_version = 'PP-OCR', structure_version = 'PP-Structure',
                 rec_algorithm = 'CRNN', max_text_length = 200, use_space_char = False, lan = 'en', det = False,
                 cpu_threads = 12, cls = False,use_gpu=False )
 
@@ -25,6 +24,7 @@ This function takes the input image path as input and uses YOLOv_11 to segment t
 It returns an output dictionary containing the co-ordinates of the bounding box bounding the screen, 
 the confidence score and the label.
 '''
+
     # sending image in the model for segmentation
     # output of the model is a list containing all the detected screens
     results_seg = yolo_seg.predict(source=image_path)
@@ -34,11 +34,9 @@ the confidence score and the label.
         print("No objects detected.")
         return {}
         
-
     # Extracting the first prediction result assuming that it is the main screen
     result = results_seg[0] 
 
-    
     # Extracting bounding boxes, scores, and labels
     # List of box coordinates
     boxes = result.boxes.xyxy.tolist()  
@@ -69,25 +67,32 @@ the confidence score and the label.
     return dic
 
 
-def return_fast_output(yolo_model, img):
+def return_output(yolo_model, img):
+  
 '''
 This function is used to segment various data from the screen. It takes yolo model and
 image as input.
 '''
 
     image = img.copy()
-    # running the yolo model
-    results_yolo = yolo_model(img)
+
+    # Get predictions from the YOLOv11 model
+    result = yolo_model(img)
 
     try:
-        boxes = results_yolo.pred[0][:, :4].tolist()
-        scores = results_yolo.pred[0][:, 4].tolist()
-        labels = results_yolo.pred[0][:, 5].tolist()
-    except:
-        boxes = []
-        scores = []
-        labels = []
-    # Creating dictionary
+        # YOLOv11 format: Extract boxes, scores, and labels
+        for r in result:
+            boxes = r.boxes.xyxy.tolist()  # List of bounding boxes
+            scores = r.boxes.conf.tolist()  # List of confidence scores
+            labels = r.boxes.cls.tolist()  # List of class indices
+          
+    except AttributeError:
+        # Handle case when predictions are empty or missing
+        return {}
+
+    # Create a dictionary to store the highest-scoring box per label
+    dic = {}
+    # Iterate through predictions and keep the highest-scoring box for each label
     dic = {}
     for each in labels:
         if each not in dic.keys():
@@ -97,42 +102,44 @@ image as input.
         score , box = dic[labels[i]]
         if score < scores[i]:
             dic[labels[i]] = (scores[i], boxes[i])
+
+    print("Dictionnary with Labels and Confidence Scores and Bounding Box Coordinates: ", dic)
     return dic
 
 
-def recognize_fast(image, dic, rec):
+def recognize(image, dic, rec):
+  
 '''
 This method is used for reading the data from the boxes made after detecting the data
 '''
-    # output dict
+
     vitals = {}
-    # various labels
-    labels = {0.0: 'DBP' , 1.0:'HR' , 2.0:'HR_W' , 3.0:'MAP', 4.0:'RR' , 5.0:'SBP' , 6.0:'SPO2' }
+    labels = {0.0:'DBP', 1.0:'HR', 2.0:'HR_W', 3.0:'MAP', 4.0:'RR' , 5.0:'SBP', 6.0:'SPO2'}
     for each in dic.keys():
+      if each==2.0:
+        continue
+      else:
         score, box = dic[each]
         xmin = int(box[0])
         xmax = int(box[2])
         ymin = int(box[1])
         ymax = int(box[3])
-        img = image[ymin:ymax,xmin:xmax]
-      
-        # Using PaddleOCR to read text from the image region
-        text = rec.ocr(img,cls = False,det = False)[0][0][0]
-
-        # Cleaning the text (remove unwanted characters)
-        text = text.replace('(','').replace(')','').replace('/','').replace('-','').replace('*','')
-
-        # Checking if the text is numeric and assign to the correct label
-        if text.isdigit():
-            vitals[labels[each]] = text
+      print(xmin,xmax,ymin,ymax)
+      img = image[ymin:ymax,xmin:xmax]
+      text = rec.ocr(img,cls = False,det = False)[0][0][0]
+      text = text.replace('(','').replace(')','').replace('/','').replace('-','').replace('*','')
+      if text.isdigit():
+          vitals[labels[each]] = text
 
     return vitals
 
 
 def draw_screen_boxes_pillow(image, dic):
+  
 """
 Draws screen box, label, and score on the image using PIL.
 """
+
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -150,7 +157,6 @@ Draws screen box, label, and score on the image using PIL.
     for label, (score, box) in dic.items():
         if not box:  
             continue
-
 
         # Unpacking the box coordinates
         x_min, y_min, x_max, y_max = map(int, box)
@@ -173,9 +179,11 @@ Draws screen box, label, and score on the image using PIL.
         
 
 def crop_and_save_box(image, box, save_path="transformed_image.jpg"):
+  
 """
 Crops the part of the image inside the bounding box and saves it.
 """
+
     # Converting image to a PIL Image if needed
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -194,10 +202,12 @@ Crops the part of the image inside the bounding box and saves it.
 
 
 def draw_bounding_boxes_pillow(image, dic):
+  
 '''
 This method draws bounding boxes for the screen detected by the model and returns the image
 with the bounding box drawn around it.
 '''    
+
     # Converting image to a PIL Image (if it's not already)
     if not isinstance(image, Image.Image):
         image = Image.fromarray(image)
@@ -236,6 +246,7 @@ with the bounding box drawn around it.
 
 
 def draw_bounding_boxes_with_labels(image, dic, number_dict):
+  
 """
 Draw bounding boxes on the image with labels and values from number_dict.
 Save the modified image with annotations.
@@ -281,11 +292,12 @@ Save the modified image with annotations.
     return image
     
 
-
 def save_results_to_txt(results, output_file="results.txt"):
+  
 """
 Save the results dictionary to a text file.
 """
+
     with open(output_file, "w") as file:
         for img_name, values in results.items():
             file.write(f"Image: {img_name}\n")
@@ -296,10 +308,12 @@ Save the results dictionary to a text file.
 
 
 def final_detection(image_path):
+  
 '''
 This function takes the input as the input image path. It calls various functions to do processing
 of various types on the image and run models on it. It gives a dictionary as an output.
 '''
+
     # intializing results as dictionary
     results = {}
     
@@ -329,13 +343,13 @@ of various types on the image and run models on it. It gives a dictionary as an 
     transformed_img=np.array(transformed_image)
 
     # segmenting the data from the segmentted screen
-    temp = return_fast_output(yolo_fast, transformed_img)
+    temp = return_output(yolo_det, transformed_img)
     box_img = draw_bounding_boxes_pillow(transformed_image, temp)
     # saving the image containing bounding boxes around various data on the screen
     box_img.save("output_image.jpg", format="JPEG")
     print("Image saved as 'output_image.jpg' in the current directory.")
     
-    number_dict = recognize_fast(transformed_img, temp, paddle_fast)
+    number_dict = recognize(transformed_img, temp, paddle_ocr)
     result_image = draw_bounding_boxes_with_labels(transformed_img, temp, number_dict)
     result_image.save("annotated_image.jpg")
     print("Image saved as 'annotated_image.jpg' in the current directory.")
