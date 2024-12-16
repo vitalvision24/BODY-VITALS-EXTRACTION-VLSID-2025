@@ -343,6 +343,6 @@ def final_detection(image_path):
   return results
 
 
-image_path = '/content/prashant_icu_mon--16_2023_1_1_22_18_54.jpeg'
+image_path = './2.jpg'
 results_dict = final_detection(image_path)
 save_results_to_txt(results_dict, output_file="detection_results.txt")
