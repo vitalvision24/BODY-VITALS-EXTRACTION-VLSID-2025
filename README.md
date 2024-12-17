@@ -5,6 +5,9 @@ We suggest a three-step solution to address the challenge: Preprocessing, Vital 
 
 The pipeline is also implemented on Texas Instruments' EDGE AI board **SK-AM62A-LP**.
 
+![IMG_20241217_122941](https://github.com/user-attachments/assets/a07b00b4-c6bb-4992-a57f-ca30ad33d16f)
+
+
 ## APPROACH
 The approach we choose to tackle the problem is, we first capture the image of the system in frame and detect the screen using YOLO segmentation model. The segmentation model will be fine-tuned for detecting the vital monitor by predicting a mask for the digital screen of the model. The image is cropped to the segmentation mask using the predictions of the model. Now, to localize the different vital signals on the segmented screen we train a YOLO model for object detection task on a custom annotated dataset. The main vital signals that we are focusing will be divided into the following classes/labels for the object detection model to classify them into:
 
