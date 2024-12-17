@@ -8,6 +8,9 @@ The pipeline is also implemented on Texas Instruments' EDGE AI board **SK-AM62A-
 ![IMG_20241217_122941](https://github.com/user-attachments/assets/a07b00b4-c6bb-4992-a57f-ca30ad33d16f)
 
 
+## You can see the demo video [here](https://drive.google.com/file/d/1wPJUqFia84Gymy3NUYL8hmXUBIJ-Puvb/view?usp=sharing).
+
+
 ## APPROACH
 The approach we choose to tackle the problem is, we first capture the image of the system in frame and detect the screen using YOLO segmentation model. The segmentation model will be fine-tuned for detecting the vital monitor by predicting a mask for the digital screen of the model. The image is cropped to the segmentation mask using the predictions of the model. Now, to localize the different vital signals on the segmented screen we train a YOLO model for object detection task on a custom annotated dataset. The main vital signals that we are focusing will be divided into the following classes/labels for the object detection model to classify them into:
 
@@ -85,6 +88,8 @@ After the fine-tuned model detects the various vital signs that we are focusing 
 
 ![file_2024-12-15_19 39 14](https://github.com/user-attachments/assets/975a35ce-7592-4886-a0a9-6f601c136ada)
 
+
+## You can also understand the pipeline through this [video](https://drive.google.com/file/d/1bW6cu18sr-xsrH8u0A2fGg9uuJg187up/view?usp=sharing).
 
 ## STEPS TO IMPLEMENT THE PIPELINE:
 
@@ -164,3 +169,6 @@ pip install -r requirements.txt
 
 
    <img src="https://github.com/vitalvision24/BODY-VITALS-EXTRACTION-VLSID-2025/blob/main/Results/HR_GRAPH_DIGITIZATION/result_1.jpg" width=400 height=400>
+
+
+
