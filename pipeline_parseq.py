@@ -275,13 +275,7 @@ def inference_pred(pred):
     return label
 
 
-def wbf_ensemble(boxes_list, scores_list, labels_list, image):
-  weights = [2, 1]
-  iou_thr = 0.6
-  skip_box_thr = 0.01
-  sigma = 0.1
-  boxes, scores, labels = weighted_boxes_fusion(boxes_list, scores_list, labels_list, weights=weights, iou_thr=iou_thr, skip_box_thr=skip_box_thr)
-  return boxes, scores
+
 
 """
 This method draws bounding boxes on the image with labels and detected numbers.
@@ -376,199 +370,80 @@ def image_dict(text , boxes , scores, image):
 
   return {'image': image, 'val_vec': nums.tolist(), 'boxes': boxes_dic}
 
-class CRABBNET(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.model = timm.create_model('resnext50_32x4d', pretrained=True, num_classes=0, in_chans=4)
-        self.ll = nn.Linear(2048+7,6)
-        self.fl = nn.Linear(14,6)
+def draw_boxes_with_labels(image, boxes, labels, detected_texts):
+    # Define the mapping of numeric labels to text labels
+    label_mapping = {
+        0.0: "DBP",
+        1.0: "HR",
+        2.0: "HR_W",
+        3.0: "MAP",
+        4.0: "RR",
+        5.0: "SBP",
+        6.0: "SPO2"
+    }
 
-    def forward(self, img, text_data, num, val_vec):
-        x = self.model(img)
-        x = torch.cat([x, num.view(-1, 1), self.fl(torch.cat([num.view(-1, 1), text_data.view(-1, 3), val_vec.view(-1, 10)], dim=1))], dim=1)
-        x = self.ll(x)
-        x = x.view(-1, 6)
-#         x = F.softmax(x, dim = 1)
+    # Scale the box coordinates back to the original image dimensions
+    scaled_boxes = [
+        (
+            int(box[0] * 1280),
+            int(box[1] * 720),
+            int(box[2] * 1280),
+            int(box[3] * 720)
+        )
+        for box in boxes
+    ]
 
-        return x
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model_crabb = CRABBNET()
-model_crabb = model_crabb.to(device)
+    # Generate random colors for the boxes
+    colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in boxes]
 
-'''
-This is used for making custom dataset
-'''
-class InferDataset(Dataset):
-    def __init__(self, img_dict):
-        super().__init__()
+    # Initialize the result dictionary
+    result_dict = {}
 
-        self.img_dict = img_dict
+    # Iterate through the boxes, labels, and detected texts
+    for box, label, detected_text, color in zip(scaled_boxes, labels, detected_texts, colors):
+        # Map numeric label to its corresponding text label
+        text_label = label_mapping.get(label, str(label))  # Default to the numeric label if not found
 
-    def __getitem__(self, idx):
-        img = self.img_dict['image']
-        val_vec = np.array(self.img_dict['val_vec'])
-        val_vec.resize(10,)
-        np.random.shuffle(val_vec)
+        # Replace detected_text with "N.A." for HR_W
+        if text_label == "HR_W":
+            detected_text = "N.A."
+        else:
+            # Attempt to convert the detected_text to a float
+            try:
+                detected_value = float(detected_text)
+            except ValueError:
+                detected_value = None  # Use None if conversion fails
 
-        boxes = self.img_dict['boxes'][idx]
-        bbox = boxes['bbox']
+            # Update the result dictionary with the detected value
+            result_dict[text_label.lower()] = detected_value
 
-        xmin = int(bbox[0]*1280)
-        ymin = int(bbox[1]*720)
-        xmax = int(bbox[2]*1280)
-        ymax = int(bbox[3]*720)
-        mask = np.zeros((img.shape[0], img.shape[1], 1))
-        mask = cv2.rectangle((mask), (xmin, ymin), (xmax, ymax), 255, -1)
+        # Extract coordinates
+        xmin, ymin, xmax, ymax = box
 
-        # plt.imshow(mask[:,:,0])
-        # plt.show()
+        # Draw the bounding box with the unique color
+        cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color=color, thickness=2)
 
-        num = boxes['num']
-        text_data = boxes['text_data']
+        # Create the label text (mapped label + detected text)
+        text = f"{text_label}: {detected_text}"
 
-        img = cv2.resize(img, (224, 224))
-        mask = cv2.resize(mask, (224,224))[:,:,None]
+        # Calculate the text size
+        font_scale = 0.5
+        font_thickness = 1
+        text_size = cv2.getTextSize(text, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=font_scale, thickness=font_thickness)[0]
 
-        arr4 = np.concatenate([img, mask], axis = 2)
+        # Background rectangle for the text
+        text_x = xmin
+        text_y = ymin - 5 if ymin - 5 > text_size[1] else ymin + text_size[1] + 5
+        cv2.rectangle(image, (text_x, text_y - text_size[1] - 2), (text_x + text_size[0], text_y + 2), color=color, thickness=-1)
 
-        arr4 = (np.transpose(arr4, (2, 0, 1))) / 255.0
-        arr4 = torch.tensor(arr4)
-        val_vec = torch.tensor(val_vec)
+        # Put the label text on the image
+        cv2.putText(image, text, (text_x, text_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=font_scale, color=(0, 0, 0), thickness=font_thickness)
 
-        return arr4, torch.tensor(num), torch.tensor(text_data), val_vec
+    # Save the image with the bounding boxes and labels
+    cv2.imwrite("Annotated.jpg", image)
 
-    def __len__(self):
-        return len(self.img_dict['boxes'])
-
-
-'''
-This method is used for making the output dictionary after getting all the outputs
-'''
-def pred_organizing(pred_mat, nums):
-
-    num_boxes = nums.shape[0]
-    box_store = set(range(num_boxes))
-    mat_variance = torch.var(pred_mat, dim=0)
-    argmax_dim0 = torch.argmax(pred_mat, dim=0)
-    sorted_, indices = torch.sort(mat_variance, descending=True)
-
-    res_dict = {'HR':None, 'RR':None, 'SPO2':None, 'SBP':None, 'DBP':None, 'MAP':None}
-    label_cols = ['HR', 'RR', 'SPO2', 'SBP', 'DBP', 'MAP']
-
-    for ind in indices:
-
-        argmax_dim0 = torch.argmax(pred_mat, dim=0)
-        box_ind = argmax_dim0[ind].item()
-
-        if box_ind not in box_store:
-            present = list(box_store)
-            if len(present) == 0:
-                continue
-
-        res_dict[label_cols[ind]] = nums[box_ind]
-        pred_mat[box_ind, :] = -100000
-
-        if torch.unique(pred_mat).shape[0] == 1:
-            break
-
-    return res_dict
-
-'''
-This method is used to classify the data received from the OCR
-'''
-def final_inference(img_dict):
-
-    test_img = InferDataset(img_dict)
-
-    test_loader = DataLoader(
-            dataset=test_img,
-            batch_size=len(img_dict['boxes']),
-            num_workers=0,
-    )
-
-    # Get the batch of data
-    imgs, nums, text_data, val_vec = next(iter(test_loader))
-
-    # Ensuring all tensors are on the same device as the model
-    imgs = imgs.float().to(device)  # Move to GPU
-    nums = nums.float().to(device)  # Move to GPU
-    text_data = text_data.float().to(device)  # Move to GPU
-    val_vec = val_vec.float().to(device)  # Move to GPU
-
-    with torch.no_grad():
-        # Performing inference
-        label_preds = model_crabb(imgs, text_data, nums, val_vec)
-
-    # Moving back to CPU if needed for further processing
-    nums = nums.cpu().numpy()
-
-    # Organizing predictions
-    yerr_dict = pred_organizing(label_preds, nums)
-    yerr_dict = {k: v for k, v in yerr_dict.items() if v is not None}
-    return yerr_dict
-
-"""
-Draw bounding boxes on the image with correct labels and detected values.
-"""
-def draw_bounding_boxes_with_values(image, detection_dict, output_dict):
-
-    # Converting image to a PIL Image (if it's not already)
-    if not isinstance(image, Image.Image):
-        image = Image.fromarray(image)
-
-    # Creating a Draw object
-    draw = ImageDraw.Draw(image)
-
-    # Trying to load a custom font or fall back to the default font
-    try:
-        font = ImageFont.truetype("arial.ttf", 16)  # Load TTF font
-    except IOError:
-        font = ImageFont.load_default()
-
-    # Mapping the output labels from output_dict to the respective boxes from detection_dict
-    labels_dict = output_dict
-    boxes = detection_dict['boxes']
-
-    # Preparing a list of bounding boxes and their respective text labels
-    box_labels = []
-
-    # Mapping each label to its respective bounding box
-    for label_name, value in labels_dict.items():
-        for box in boxes:
-            # Match the num value to the detected label
-            if box['num'] == value:
-                xmin, ymin, xmax, ymax = box['bbox']
-
-                # Convert normalized box coordinates to pixel values
-                xmin = int(xmin * 1280)
-                ymin = int(ymin * 720)
-                xmax = int(xmax * 1280)
-                ymax = int(ymax * 720)
-
-                box_labels.append((xmin, ymin, xmax, ymax, label_name, value))
-
-    # Iterating through the box_labels to draw the boxes and labels
-    for (xmin, ymin, xmax, ymax, label_name, value) in box_labels:
-        # Drawing the bounding box
-        draw.rectangle([xmin, ymin, xmax, ymax], outline="red", width=3)
-
-        # Adding the label and value above the bounding box
-        text = f"{label_name}: {value:.1f}"
-
-        # Getting text size and adjust position
-        text_bbox = font.getbbox(text)
-        text_width = text_bbox[2] - text_bbox[0]
-        text_height = text_bbox[3] - text_bbox[1]
-
-        # Drawing background for text (to improve visibility)
-        text_background = [xmin, ymin - text_height - 5, xmin + text_width, ymin]
-        draw.rectangle(text_background, fill="red")
-        draw.text((xmin, ymin - text_height - 5), text, fill="white", font=font)
-
-    # Saving the modified image with bounding boxes and text
-    image.save('annotated_image.jpg')
-    print("Image saved as annotated_image.jpg")
-    return image
+    # Return the result dictionary
+    return result_dict
 
 
 '''
@@ -580,27 +455,35 @@ def number_detection(img):
     boxes, scores, result_label, img = return_output(yolo_model_det, img)
 
     draw_bounding_boxes_pillow(img, boxes, scores, result_label, 'output_image.jpg')
-
+    # draw_bounding_boxes_with_labels(img, boxes, scores, text)
     text , img, boxes , scores = recognize(img, boxes, scores)
-    draw_bounding_boxes_with_labels(img, boxes, scores, text)
+    final_dict = draw_boxes_with_labels(img, boxes, result_label, text)
+    
 
     number_dict = image_dict(text , boxes , scores, img)
 
-    return number_dict
+    return final_dict
 
 """
 Save the results dictionary to a text file.
 """
-def save_results_to_txt(results, output_file="results.txt"):
+def save_results_to_txt(data_dict, output_file="results_dict.txt"):
+    """
+    Save a dictionary to a text file.
 
+    Parameters:
+    - data_dict: dict, the dictionary to save.
+    - output_file: str, the path of the file to save the results to.
+    """
     with open(output_file, "w") as file:
-        for img_name, values in results.items():
-            file.write(f"Image: {img_name}\n")
-            for label, value in values.items():
-                file.write(f"{label}: {value}\n")
-            # Adding a blank line between entries
-            file.write("\n")
-    print(f"Results saved to '{output_file}'")
+        for label, value in data_dict.items():
+            # Write the label and value in each line
+            file.write(f"{label}: {value}\n")
+        # Adding a blank line for clarity if needed in future appends
+        file.write("\n")
+    
+    print(f"Dictionary saved to '{output_file}'")
+
 
 '''
 This function takes the input as the input image path. It calls various functions to do processing
@@ -640,13 +523,7 @@ def final_detection(image_path):
 
     detection_dict = number_detection(transformed_img)
     print(detection_dict)
-    output_dict = final_inference(detection_dict)
-    print(output_dict)
-    image_with_bboxes = draw_bounding_boxes_with_values(transformed_image, detection_dict, output_dict)
-    # Storing the result for the current image
-    results[img_name] = output_dict
-
-    return results
+    return detection_dict
 
 image_path = './test.jpeg'
 results_dict = final_detection(image_path)
