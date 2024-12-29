@@ -565,11 +565,11 @@ def final_detection(input_folder, output_folder):
         results[img_name] = detection_dict
 
     return results, proc_time
-
-    def extract_frames(video_path, output_folder, interval_seconds=1):
+    
+def extract_frames(video_path, output_folder, interval_seconds=1):
     """
     Extract frames from a video at a specified time interval and save them to a folder.
-
+    
     Args:
         video_path (str): Path to the input video file.
         output_folder (str): Path to the folder where extracted frames will be saved.
@@ -578,26 +578,26 @@ def final_detection(input_folder, output_folder):
     # Create the output folder if it doesn't exist
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-
+    
     # Open the video file
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         print("Error: Cannot open video.")
         return
-
+    
     # Get video properties
     fps = int(cap.get(cv2.CAP_PROP_FPS))  # Frames per second
     frame_interval = interval_seconds * fps  # Frames to skip
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
+    
     frame_number = 0
     saved_frame_count = 0
-
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
-
+    
         # Check if the current frame is at the required interval
         if frame_number % frame_interval == 0:
             frame_time = frame_number / fps  # Time in seconds
@@ -606,12 +606,12 @@ def final_detection(input_folder, output_folder):
             cv2.imwrite(output_file, frame)
             print(f"Saved frame at {frame_time:.2f}s to {output_file}")
             saved_frame_count += 1
-
+    
         frame_number += 1
-
+    
     # Release the video capture
     cap.release()
-
+    
     print(f"Extraction complete. {saved_frame_count} frames saved to {output_folder}.")
 
 
