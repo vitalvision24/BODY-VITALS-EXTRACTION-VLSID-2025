@@ -19,3 +19,5 @@ ultralytics
 paddlepaddle
 paddleocr
 pytorch_lightning
+nltk
+supabase
