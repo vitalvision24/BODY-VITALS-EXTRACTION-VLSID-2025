@@ -550,9 +550,9 @@ def final_detection(image_path):
     detection_dict = number_detection(transformed_img)
 # Convert detection dictionary values to integers
     detection_dict = validate_and_convert_detection_dict(detection_dict)
-    sbp_val = detection_dict["sbp"]
-    detection_dict["sbp"] = detection_dict["sbp"]
-    detection_dict["dbp"] = sbp_val
+    # sbp_val = detection_dict["sbp"]
+    # detection_dict["sbp"] = detection_dict["sbp"]
+    # detection_dict["dbp"] = sbp_val
     detection_dict["id"] = "d2377dea-764a-47f2-badf-f9c306dc7218"
     # Insert detection data into Supabase DB
     try:
