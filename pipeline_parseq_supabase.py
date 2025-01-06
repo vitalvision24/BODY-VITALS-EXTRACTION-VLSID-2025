@@ -378,12 +378,12 @@ def image_dict(text , boxes , scores, image):
 def draw_boxes_with_labels(image, boxes, labels, detected_texts):
     # Define the mapping of numeric labels to text labels
     label_mapping = {
-        0.0: "DBP",
+        0.0: "SBP",
         1.0: "HR",
         2.0: "HR_W",
         3.0: "MAP",
         4.0: "RR",
-        5.0: "SBP",
+        5.0: "DBP",
         6.0: "SPO2"
     }
 
@@ -483,6 +483,10 @@ def save_results_to_txt(data_dict, output_file="results_dict.txt"):
     with open(output_file, "w") as file:
         for label, value in data_dict.items():
             # Write the label and value in each line
+            if label == "dbp":
+                label = "sbp"
+            elif label == "sbp":
+                label = "dbp"
             file.write(f"{label}: {value}\n")
         # Adding a blank line for clarity if needed in future appends
         file.write("\n")
