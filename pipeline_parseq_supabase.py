@@ -375,7 +375,20 @@ def image_dict(text , boxes , scores, image):
 
   return {'image': image, 'val_vec': nums.tolist(), 'boxes': boxes_dic}
 
-def draw_boxes_with_labels(image, boxes, labels, detected_texts):
+def strip_special_characters(input_string):
+    """
+    Removes specific characters '(', ')', '/', '\' from the input string.
+
+    Args:
+        input_string (str): The original string.
+
+    Returns:
+        str: The string with specified characters removed.
+    """
+    characters_to_remove = "()/\\"
+    return input_string.translate(str.maketrans("", "", characters_to_remove))
+
+def draw_boxes_with_labels(image, boxes, labels, detected_texts, image_name):
     # Define the mapping of numeric labels to text labels
     label_mapping = {
         0.0: "SBP",
@@ -415,7 +428,8 @@ def draw_boxes_with_labels(image, boxes, labels, detected_texts):
         else:
             # Attempt to convert the detected_text to a float
             try:
-                detected_value = float(detected_text)
+                detected_text = strip_special_characters(detected_text)
+                detected_value = int(detected_text)
             except ValueError:
                 detected_value = None  # Use None if conversion fails
 
@@ -445,7 +459,7 @@ def draw_boxes_with_labels(image, boxes, labels, detected_texts):
         cv2.putText(image, text, (text_x, text_y), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=font_scale, color=(0, 0, 0), thickness=font_thickness)
 
     # Save the image with the bounding boxes and labels
-    cv2.imwrite("Annotated.jpg", image)
+    cv2.imwrite(f"{image_name}.jpg", image)
 
     # Return the result dictionary
     return result_dict
@@ -454,7 +468,7 @@ def draw_boxes_with_labels(image, boxes, labels, detected_texts):
 '''
 This method is used to detect the data in the screnn and then optically recognizing them
 '''
-def number_detection(img):
+def number_detection(img, image_path):
 
     # sending the image to YOLO model for detecting various vital signs on the screen
     boxes, scores, result_label, img = return_output(yolo_model_det, img)
@@ -462,7 +476,7 @@ def number_detection(img):
     draw_bounding_boxes_pillow(img, boxes, scores, result_label, 'output_image.jpg')
     # draw_bounding_boxes_with_labels(img, boxes, scores, text)
     text , img, boxes , scores = recognize(img, boxes, scores)
-    final_dict = draw_boxes_with_labels(img, boxes, result_label, text)
+    final_dict = draw_boxes_with_labels(img, boxes, result_label, text, image_path)
     
 
     number_dict = image_dict(text , boxes , scores, img)
@@ -515,7 +529,7 @@ def validate_and_convert_detection_dict(detection_dict):
 This function takes the input as the input image path. It calls various functions to do processing
 of various types on the image and run models on it. It gives a dictionary as an output.
 '''
-def final_detection(image_path):
+def final_detection(image_path, image_name):
 
     # intializing results as dictionary
     results = {}
@@ -547,12 +561,9 @@ def final_detection(image_path):
     transformed_image = Image.open(transformed_image_path)
     transformed_img=np.array(transformed_image)
 
-    detection_dict = number_detection(transformed_img)
+    detection_dict = number_detection(transformed_img, image_name)
 # Convert detection dictionary values to integers
     detection_dict = validate_and_convert_detection_dict(detection_dict)
-    # sbp_val = detection_dict["sbp"]
-    # detection_dict["sbp"] = detection_dict["sbp"]
-    # detection_dict["dbp"] = sbp_val
     detection_dict["id"] = "d2377dea-764a-47f2-badf-f9c306dc7218"
     # Insert detection data into Supabase DB
     try:
@@ -563,6 +574,15 @@ def final_detection(image_path):
     print(detection_dict)
     return detection_dict
 
-image_path = './test.jpeg'
-results_dict = final_detection(image_path)
+image_path = './test.jpg'
+results_dict = final_detection(image_path,"annotated_1")
+save_results_to_txt(results_dict, output_file="detection_results.txt")
+image_path = './test2.jpg'
+results_dict = final_detection(image_path,"annotated_2")
+save_results_to_txt(results_dict, output_file="detection_results.txt")
+image_path = './test3.jpg'
+results_dict = final_detection(image_path,"annotated_3")
+save_results_to_txt(results_dict, output_file="detection_results.txt")
+image_path = './test4.jpg'
+results_dict = final_detection(image_path,"annotated_4")
 save_results_to_txt(results_dict, output_file="detection_results.txt")
