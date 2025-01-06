@@ -493,7 +493,24 @@ def save_results_to_txt(data_dict, output_file="results_dict.txt"):
     
     print(f"Dictionary saved to '{output_file}'")
 
+def validate_and_convert_detection_dict(detection_dict):
+    """
+    Checks if the values in the dictionary can be converted to integers. 
+    If not, replaces them with 'NA'.
 
+    Args:
+        detection_dict (dict): Dictionary with values to check.
+
+    Returns:
+        dict: Updated dictionary with valid integers or 'NA'.
+    """
+    updated_dict = {}
+    for key, value in detection_dict.items():
+        try:
+            updated_dict[key] = int(value)  # Try converting value to int
+        except (ValueError, TypeError):
+            updated_dict[key] = None  # Replace with "NA" if conversion fails
+    return updated_dict
 '''
 This function takes the input as the input image path. It calls various functions to do processing
 of various types on the image and run models on it. It gives a dictionary as an output.
@@ -532,7 +549,10 @@ def final_detection(image_path):
 
     detection_dict = number_detection(transformed_img)
 # Convert detection dictionary values to integers
-    detection_dict = {key: int(value) for key, value in detection_dict.items()}
+    detection_dict = validate_and_convert_detection_dict(detection_dict)
+    sbp_val = detection_dict["sbp"]
+    detection_dict["sbp"] = detection_dict["sbp"]
+    detection_dict["dbp"] = sbp_val
     detection_dict["id"] = "d2377dea-764a-47f2-badf-f9c306dc7218"
     # Insert detection data into Supabase DB
     try:
